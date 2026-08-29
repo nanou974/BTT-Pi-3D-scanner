@@ -1,0 +1,18 @@
+# Scanner 3D - Dépendances Python
+# BTT Pi v1.2 + Python custom
+
+# Interface web
+flask>=2.3.0
+
+# Capture webcam
+opencv-python>=4.8.0
+
+# GPIO (RPi.GPIO est pré-installé sur Raspbian)
+# RPi.GPIO>=0.7.0
+
+# Utilitaires
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# Optionnel: traitement d'images
+# scikit-image>=0.21.0
