@@ -110,6 +110,37 @@ TURN_TABLE = {
 
 Brancher la webcam USB sur l'un des 4 ports USB du BTT Pi.
 
+## Bouton physique Hotspot/Client
+
+Tact switch 12mm entre GPIO 17 et GND (pull-up interne activé).
+
+```
+Tact switch 12mm
+   ┌───┐
+   │   │
+   └─┬─┘
+     │
+     ├──── GPIO 17 (Pin 11)
+     │
+    [R] 10kΩ (optionnel, pull-up interne déjà activé)
+     │
+    3.3V (Pin 1)
+
+   L'autre broche → GND (Pin 6)
+```
+
+**Installation du service :**
+```bash
+sudo cp network-button.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable network-button
+sudo systemctl start network-button
+```
+
+**Fonctionnement :**
+- Appui court (< 2s) → Bascule entre hotspot et client
+- LED verte = mode client, LED rouge = mode hotspot (à adapter selon ton hardware)
+
 ## Branchement des moteurs NEMA17
 
 Les NEMA17 ont 4 fils (2 bobines). Pour identifier les bobines:

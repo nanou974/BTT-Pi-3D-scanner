@@ -1,0 +1,13 @@
+[Unit]
+Description=Bouton physique hotspot/client
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/BTT-Pi-3D-scanner/venv/bin/python3 /opt/BTT-Pi-3D-scanner/network_button.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
