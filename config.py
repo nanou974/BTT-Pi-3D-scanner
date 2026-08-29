@@ -1,20 +1,22 @@
 # Configuration du scanner 3D
 
-# === Broches GPIO pour les drivers A4988 ===
-# Driver du plateau tournant (NEMA17 #1)
-TURN_TABLE = {
-    "step": 17,      # Broche GPIO pour STEP
-    "dir": 27,       # Broche GPIO pour DIR
-    "enable": 22,    # Broche GPIO pour ENABLE (optionnel)
-    "steps_per_rev": 200,  # 200 pas/rev pour NEMA17 (1.8°/pas)
-    "microstep": 16,      # Microstepping: 1, 2, 4, 8, 16
+# === Configuration Arduino (CNC Shield V3) ===
+ARDUINO = {
+    "port": None,          # None = auto-détection, ou "/dev/ttyUSB0", "COM3", etc.
+    "baudrate": 115200,
 }
 
-# Driver du bras caméra (NEMA17 #2)
+# === Paramètres des moteurs ===
+# Les moteurs sont contrôlés par l'Arduino via le CNC Shield V3
+# X = Plateau tournant, Y = Bras caméra
+TURN_TABLE = {
+    "axis": "X",
+    "steps_per_rev": 200,   # 200 pas/rev pour NEMA17 (1.8°/pas)
+    "microstep": 16,        # Microstepping sur les A4988 (jumper sur le shield)
+}
+
 CAMERA_ARM = {
-    "step": 23,
-    "dir": 24,
-    "enable": 25,
+    "axis": "Y",
     "steps_per_rev": 200,
     "microstep": 16,
 }
@@ -23,7 +25,6 @@ CAMERA_ARM = {
 SCAN_SETTINGS = {
     "photos_per_rotation": 36,    # Nombre de photos par rotation complète
     "arm_positions": 5,           # Nombre de positions verticales du bras
-    "step_delay": 0.001,          # Délai entre les pas (secondes)
     "settle_time": 0.5,           # Temps d'attente après mouvement (secondes)
 }
 

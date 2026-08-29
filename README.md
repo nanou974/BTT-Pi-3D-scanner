@@ -20,11 +20,13 @@ Inspiré par le projet [OpenScan](https://openscan.eu/) - Scanner 3D open source
 | Composant | Quantité | Notes |
 |-----------|----------|-------|
 | BTT Pi v1.2 | 1 | Contrôleur principal (Allwinner H616, 1GB RAM) |
-| A4988 | 2 | Drivers pour moteurs pas à pas |
+| Arduino Uno | 1 | Contrôleur moteurs (via USB depuis le BTT Pi) |
+| CNC Shield V3 | 1 | Shield Arduino pour A4988 (monté sur l'Arduino Uno) |
+| A4988 | 2 | Drivers pour moteurs pas à pas (montés sur le CNC Shield) |
 | NEMA17 | 2 | Moteurs pas à pas (>13Ncm pour plateau, >40Ncm recommandé) |
 | Logitech C300 | 1 | Webcam pour la capture d'images (sans LED) |
 | Trust Spotlight Pro | 1 | Éclairage continu (modifiée: potentiomètre LED retiré, éclairage permanent) |
-| Alimentation 12V-24V | 1 | Pour les moteurs (ou alimentation USB-C 5V/3A + alim externe moteurs) |
+| Alimentation 12V-24V | 1 | Pour les moteurs (bornier du CNC Shield) |
 | Micro SD Card | 1 | >16GB, classe 10 |
 
 ### Impression 3D
@@ -32,6 +34,19 @@ Inspiré par le projet [OpenScan](https://openscan.eu/) - Scanner 3D open source
 - Pièces pour le bras caméra
 - Support pour la webcam
 - Structure/frame du scanner
+
+## Architecture
+
+```
+BTT Pi v1.2 (Armbian, Python)
+    │
+    ├── USB ──→ Arduino Uno (CNC Shield V3, A4988)
+    │               ├── X axis → NEMA17 Plateau
+    │               └── Y axis → NEMA17 Bras Caméra
+    │
+    ├── USB ──→ Logitech C300 (capture images)
+    └── USB ──→ Trust Spotlight Pro (éclairage continu)
+```
 
 ## Système d'exploitation recommandé
 
@@ -91,13 +106,7 @@ ssh root@scanner3d.local
 apt update && apt upgrade -y
 
 # Installer Python3 et pip
-apt install -y python3 python3-pip python3-venv
-
-# Installer OpenCV (nécessaire pour la webcam)
-apt install -y python3-opencv libgl1-mesa-glx libglib2.0-0
-
-# Installer RPi.GPIO (pour le contrôle GPIO sur Allwinner H616)
-pip3 install RPi.GPIO
+apt install -y python3 python3-pip python3-venv python3-opencv libgl1 libglib2.0-0 git
 
 # Cloner le projet
 cd /opt
@@ -112,31 +121,39 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configurer les broches GPIO
+### 3. Flasher l'Arduino Uno
 
-Modifier `config.py` selon votre câblage :
+Installer l'Arduino IDE ou `arduino-cli`, puis uploader le firmware :
 
-```python
-TURN_TABLE = {
-    "step": 17,      # Broche GPIO pour STEP (plateau)
-    "dir": 27,       # Broche GPIO pour DIR (plateau)
-    "enable": 22,    # Broche GPIO pour ENABLE (plateau)
-    "steps_per_rev": 200,
-    "microstep": 16,
-}
+```bash
+# Avec Arduino IDE : ouvrir arduino_firmware/scanner3d.ino
+# Sélectionner "Arduino Uno" comme carte
+# Cliquer "Upload"
 
-CAMERA_ARM = {
-    "step": 23,      # Broche GPIO pour STEP (bras)
-    "dir": 24,       # Broche GPIO pour DIR (bras)
-    "enable": 25,    # Broche GPIO pour ENABLE (bras)
-    "steps_per_rev": 200,
-    "microstep": 16,
-}
+# Ou avec arduino-cli :
+arduino-cli compile --fqbn arduino:avr:uno arduino_firmware/scanner3d.ino
+arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno arduino_firmware/scanner3d.ino
 ```
 
-### 4. Câbler les composants
+Le port série varie selon le système :
+- **Linux (Armbian)** : `/dev/ttyUSB0` ou `/dev/ttyACM0`
+- **Windows** : `COM3`, `COM4`, etc.
 
-Suivre le schéma de câblage dans `wiring.md`.
+### 4. Connecter le matériel
+
+```
+BTT Pi v1.2          Arduino Uno + CNC Shield
+─────────────        ────────────────────────
+USB ──────────────→  USB (alimentation + série)
+
+CNC Shield           NEMA17
+────────────        ───────
+X.STEP/DIR ──────→  Moteur Plateau
+Y.STEP/DIR ──────→  Moteur Bras Caméra
+12-36V ───────────→  Alimentation moteurs
+
+Câbler les moteurs 4 fils sur les borniers du CNC Shield (X et Y).
+```
 
 ### 5. Lancer le scanner
 
@@ -197,17 +214,20 @@ s.cleanup()
 
 ```
 BTT-Pi-3D-scanner/
-├── config.py          # Configuration des broches GPIO et paramètres
-├── stepper.py         # Contrôle des moteurs pas à pas via A4988
-├── camera.py          # Capture webcam USB (OpenCV)
-├── scanner.py         # Scanner principal (coordination moteurs + caméra)
-├── web_app.py         # Interface web Flask
-├── test_hardware.py   # Diagnostic matériel
-├── requirements.txt   # Dépendances Python
-├── wiring.md          # Schéma de câblage complet
-├── start.sh           # Script de démarrage rapide
-├── .gitignore         # Fichiers ignorés par Git
-└── README.md          # Cette documentation
+├── config.py              # Configuration (Arduino, moteurs, webcam)
+├── stepper.py             # Contrôle moteurs via Arduino + CNC Shield
+├── camera.py              # Capture webcam USB (OpenCV)
+├── scanner.py             # Scanner principal (coordination)
+├── web_app.py             # Interface web Flask
+├── test_hardware.py       # Diagnostic matériel
+├── requirements.txt       # Dépendances Python
+├── wiring.md              # Schéma de câblage
+├── start.sh               # Script de démarrage rapide
+├── .gitignore             # Fichiers ignorés par Git
+├── README.md              # Cette documentation
+└── arduino_firmware/      # Firmware Arduino
+    ├── scanner3d.ino      # Firmware principal
+    └── README.md          # Documentation Arduino
 ```
 
 ## Personnalisation
@@ -264,46 +284,31 @@ systemctl start scanner3d
 
 ### La webcam ne fonctionne pas
 ```bash
-# Vérifier que la webcam est détectée
 ls /dev/video*
-
-# Tester avec Python
 python3 -c "import cv2; print(cv2.VideoCapture(0).isOpened())"
+```
 
-# Si pas de /dev/video*, charger le module
-sudo modprobe uvcvideo
+### L'Arduino n'est pas détectée
+```bash
+# Vérifier les ports USB série
+ls /dev/ttyUSB* /dev/ttyACM*
+
+# Permissions
+sudo usermod -a -G dialout $USER
 ```
 
 ### Les moteurs ne bougent pas
-- Vérifier le câblage des drivers A4988
-- Vérifier l'alimentation 12V-24V
-- Vérifier les microstepping (MS1, MS2, MS3 à HIGH pour 1/16)
-- Vérifier les GPIO dans `config.py`
+- Vérifier que l'Arduino est alimentée (USB ou 12V)
+- Vérifier que les drivers A4988 sont bien montés sur le CNC Shield
+- Vérifier l'alimentation 12-36V sur le bornier bleu du shield
+- Vérifier les microstepping (jumpers MS1/MS2/MS3)
 
 ### Le serveur web ne démarre pas
 ```bash
-# Vérifier que Flask est installé
-pip3 install flask
-
-# Vérifier que le port 5000 n'est pas utilisé
-netstat -tlnp | grep 5000
-
-# Lancer en mode debug pour voir les erreurs
+cd /opt/BTT-Pi-3D-scanner
+source venv/bin/activate
+pip install flask
 python3 web_app.py
-```
-
-### Erreur GPIO
-```bash
-# Vérifier les permissions
-sudo usermod -a -G gpio $USER
-
-# Tester les GPIO
-python3 -c "
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.OUT)
-print('GPIO OK')
-"
 ```
 
 ## Licence
@@ -315,6 +320,6 @@ Projet open source - Utilisez librement pour vos projets personnels.
 - Inspiré par [OpenScan](https://openscan.eu/) - Scanner 3D open source
 - [BTT Pi v1.2](https://github.com/bigtreetech/BTT-Pi) - BigTreeTech
 - [Armbian](https://www.armbian.com/) - Système d'exploitation pour ARM
-- Contrôle moteurs via [RPi.GPIO](https://pypi.org/project/RPi.GPIO/)
+- [CNC Shield V3](https://github.com/grbl-Mega/blob/master/Grbl%20v1.1/grbl_v1.1g_eeprom_loader/README.md) - Arduino CNC Shield
 - Interface web avec [Flask](https://flask.palletsprojects.com/)
 - Capture vidéo avec [OpenCV](https://opencv.org/)
