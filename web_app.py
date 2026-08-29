@@ -265,6 +265,10 @@ HTML_TEMPLATE = """
         <header>
             <h1>Scanner 3D</h1>
             <p class="subtitle">Interface de contrôle - BTT Pi v1.2</p>
+            <div id="network-info" style="margin-top:8px; font-size:0.85em; color:#a0a0a0;">
+                <span id="network-mode">Chargement...</span>
+                <button class="btn btn-secondary" id="network-toggle" onclick="toggleNetwork()" style="padding:4px 10px; font-size:0.8em; margin-left:8px;">--</button>
+            </div>
         </header>
 
         <!-- Caméra en grand en haut -->
@@ -421,6 +425,49 @@ HTML_TEMPLATE = """
             entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
             log.insertBefore(entry, log.firstChild);
         }
+
+        // === Réseau ===
+        function updateNetwork() {
+            fetch('/api/network/mode')
+                .then(r => r.json())
+                .then(data => {
+                    const modeEl = document.getElementById('network-mode');
+                    const btn = document.getElementById('network-toggle');
+                    if (data.mode === 'hotspot') {
+                        modeEl.textContent = 'Hotspot : ' + data.hotspot_ssid + ' (' + data.ip + ')';
+                        btn.textContent = 'Mode client';
+                        btn.className = 'btn btn-danger';
+                    } else {
+                        modeEl.textContent = 'WiFi : ' + (data.ssid || '...' ) + ' (' + data.ip + ')';
+                        btn.textContent = 'Mode hotspot';
+                        btn.className = 'btn btn-primary';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('network-mode').textContent = 'Réseau inconnu';
+                });
+        }
+
+        function toggleNetwork() {
+            const btn = document.getElementById('network-toggle');
+            const isHotspot = btn.className.includes('btn-danger');
+            const url = isHotspot ? '/api/network/client' : '/api/network/hotspot';
+
+            if (!confirm(isHotspot ?
+                'Revenir en mode client WiFi ?' :
+                'Activer le hotspot ? Tu seras déconnecté et devras te reconnecter à Scanner3D.')) return;
+
+            fetch(url, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    addLog(data.message);
+                    setTimeout(updateNetwork, 3000);
+                })
+                .catch(err => addLog('Erreur réseau: ' + err));
+        }
+
+        setInterval(updateNetwork, 10000);
+        updateNetwork();
 
         function startScan() {
             const data = {
@@ -636,6 +683,60 @@ def api_status():
     if scanner:
         return jsonify(scanner.get_status())
     return jsonify({"error": "Scanner non initialisé"}), 500
+
+
+@app.route('/api/network/mode')
+def api_network_mode():
+    """API: Vérifier le mode réseau actuel"""
+    import subprocess
+    try:
+        # Vérifier si hostapd tourne
+        result = subprocess.run(['systemctl', 'is-active', 'hostapd'],
+                                capture_output=True, text=True)
+        hotspot_active = result.stdout.strip() == 'active'
+
+        # Obtenir l'IP actuelle
+        ip_result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
+        ip = ip_result.stdout.strip().split()[0] if ip_result.stdout.strip() else 'N/A'
+
+        # Obtenir le SSID connecté (mode client)
+        ssid = ''
+        if not hotspot_active:
+            ssid_result = subprocess.run(['iwgetid', '-r'], capture_output=True, text=True)
+            ssid = ssid_result.stdout.strip()
+
+        return jsonify({
+            "mode": "hotspot" if hotspot_active else "client",
+            "ip": ip,
+            "ssid": ssid,
+            "hotspot_ssid": "Scanner3D"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/network/hotspot', methods=['POST'])
+def api_network_hotspot():
+    """API: Activer le mode hotspot"""
+    import subprocess
+    script = os.path.join(os.path.dirname(__file__), 'hotspot_on.sh')
+    try:
+        subprocess.Popen(['bash', script])
+        return jsonify({"ok": True, "message": "Hotspot en cours d'activation... Reconnecte-toi à Scanner3D"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/network/client', methods=['POST'])
+def api_network_client():
+    """API: Revenir en mode client"""
+    import subprocess
+    script = os.path.join(os.path.dirname(__file__), 'hotspot_off.sh')
+    try:
+        subprocess.Popen(['bash', script])
+        return jsonify({"ok": True, "message": "Mode client activé... Reconnecte-toi à ton WiFi"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/scan/start', methods=['POST'])
