@@ -46,6 +46,8 @@ Baudrate: 115200
 | `MY<steps>` | Déplacer axe Y (bras) | `OK` |
 | `MZ<steps>` | Déplacer axe Z (libre) | `OK` |
 | `HOME` | Retour au zéro logiciel | `OK` |
+| `CALX<steps>` | Calibration axe X (bump vers butée) | `OK` |
+| `CALZ<steps>` | Calibration axe Z (bump vers butée) | `OK` |
 | `STATUS` | Positions actuelles | `POS X:0 Y:0` |
 | `ENABLE` | Activer les moteurs | `OK` |
 | `DISABLE` | Désactiver les moteurs | `OK` |

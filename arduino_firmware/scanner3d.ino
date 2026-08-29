@@ -133,6 +133,33 @@ void processCommand(String cmd) {
     moveAxis(Z_STEP, Z_DIR, steps, true);
     Serial.println("OK");
   }
+  else if (cmd.startsWith("CAL")) {
+    // CALX ou CALZ: Calibration par bump
+    // Déplace l'axe en position négative jusqu'à la butée
+    char axis = cmd.charAt(3);
+    long maxSteps = cmd.substring(4).toInt();
+    if (maxSteps <= 0) maxSteps = 6400;  // Défaut: 1 tour à 1/16
+
+    int stepPin, dirPin;
+    if (axis == 'X') { stepPin = X_STEP; dirPin = X_DIR; }
+    else if (axis == 'Z') { stepPin = Z_STEP; dirPin = Z_DIR; }
+    else { Serial.println("ERR:AXIS"); return; }
+
+    // Vitesse lente pour le calibrage
+    int savedDelay = stepDelay;
+    stepDelay = 800;  // Plus lent pour le bump
+
+    // Déplacer en négatif (vers la butée)
+    moveAxis(stepPin, dirPin, -maxSteps, false);
+
+    stepDelay = savedDelay;
+
+    // Reset la position
+    if (axis == 'X') posX = 0;
+    else posY = 0;
+
+    Serial.println("OK");
+  }
   else {
     Serial.print("ERR:UNKNOWN:");
     Serial.println(cmd);
