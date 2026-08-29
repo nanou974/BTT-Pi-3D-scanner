@@ -16,7 +16,7 @@ TURN_TABLE = {
 }
 
 CAMERA_ARM = {
-    "axis": "Y",
+    "axis": "Z",
     "steps_per_rev": 200,
     "microstep": 16,
 }
