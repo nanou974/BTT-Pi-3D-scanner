@@ -334,7 +334,7 @@ HTML_TEMPLATE = """
             </div>
 
             <!-- OpenScan Cloud -->
-            <div class="card">
+            <div class="card" style="grid-column: 1 / -1;">
                 <h2>OpenScan Cloud (Gratuit)</h2>
                 <div class="form-group">
                     <label for="cloud-scan-select">Scan à traiter</label>
