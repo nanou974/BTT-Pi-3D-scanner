@@ -104,8 +104,12 @@ cd /opt
 git clone https://github.com/nanou974/BTT-Pi-3D-scanner.git
 cd BTT-Pi-3D-scanner
 
+# Créer un environnement virtuel (requis avec Python 3.13+)
+python3 -m venv venv
+source venv/bin/activate
+
 # Installer les dépendances Python
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 3. Configurer les broches GPIO
@@ -137,6 +141,9 @@ Suivre le schéma de câblage dans `wiring.md`.
 ### 5. Lancer le scanner
 
 ```bash
+cd /opt/BTT-Pi-3D-scanner
+source venv/bin/activate
+
 # Mode terminal (test)
 python3 scanner.py
 
@@ -239,7 +246,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/BTT-Pi-3D-scanner
-ExecStart=/usr/bin/python3 /opt/BTT-Pi-3D-scanner/web_app.py
+ExecStart=/opt/BTT-Pi-3D-scanner/venv/bin/python /opt/BTT-Pi-3D-scanner/web_app.py
 Restart=always
 RestartSec=5
 
