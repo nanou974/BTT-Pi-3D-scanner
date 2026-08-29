@@ -193,6 +193,24 @@ HTML_TEMPLATE = """
             border-radius: 5px;
             border: 2px solid #0f3460;
         }
+        .camera-full {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .camera-full img {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 2px solid #0f3460;
+            background: #0a0a15;
+        }
+        .camera-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
         .log {
             background: #0a0a15;
             border-radius: 5px;
@@ -228,6 +246,17 @@ HTML_TEMPLATE = """
             <p class="subtitle">Interface de contrôle - BTT Pi v1.2</p>
         </header>
 
+        <!-- Caméra en grand en haut -->
+        <div class="card camera-full">
+            <h2>Aperçu caméra</h2>
+            <img id="preview" src="/video_feed" alt="Aperçu caméra" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'/>'">
+            <div class="camera-bar">
+                <button class="btn btn-secondary" onclick="capturePhoto()">Capturer photo</button>
+                <button class="btn btn-secondary" onclick="refreshPreview()">Rafraîchir</button>
+            </div>
+        </div>
+
+        <!-- Contrôles en dessous -->
         <div class="grid">
             <!-- Statut -->
             <div class="card">
@@ -296,18 +325,6 @@ HTML_TEMPLATE = """
                 <div class="control-buttons" style="margin-top: 15px; justify-content: center;">
                     <button class="btn btn-secondary" onclick="disableMotors()">Désactiver moteurs</button>
                     <button class="btn btn-secondary" onclick="calibrate()">Calibration</button>
-                </div>
-            </div>
-
-            <!-- Caméra -->
-            <div class="card">
-                <h2>Caméra</h2>
-                <div class="preview-container">
-                    <img id="preview" src="/video_feed" alt="Aperçu caméra" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'/>'">
-                </div>
-                <div class="control-buttons" style="margin-top: 15px; justify-content: center;">
-                    <button class="btn btn-secondary" onclick="capturePhoto()">Capturer photo</button>
-                    <button class="btn btn-secondary" onclick="refreshPreview()">Rafraîchir</button>
                 </div>
             </div>
 
