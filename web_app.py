@@ -235,12 +235,28 @@ HTML_TEMPLATE = """
             color: #666;
         }
         @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            .motor-control {
-                grid-template-columns: 1fr;
-            }
+            .container { padding: 10px; }
+            header h1 { font-size: 1.5em; }
+            .grid { grid-template-columns: 1fr; }
+            .motor-control { grid-template-columns: 1fr; }
+            .camera-full img { max-height: 300px; }
+            .btn { padding: 12px 16px; font-size: 1em; }
+            .control-buttons { gap: 8px; }
+            .control-buttons .btn { flex: 1; min-width: 0; }
+            .card { padding: 15px; }
+            .card h2 { font-size: 1.1em; }
+            .motor-section { padding: 10px; }
+            .log { max-height: 150px; font-size: 0.8em; }
+            #cloud-scan-list div { padding: 6px 10px; font-size: 0.9em; }
+        }
+        @media (max-width: 480px) {
+            header h1 { font-size: 1.2em; }
+            header p { font-size: 0.8em; }
+            .camera-full img { max-height: 220px; }
+            .btn { padding: 10px 12px; font-size: 0.9em; }
+            .control-buttons { flex-direction: column; }
+            .control-buttons .btn { width: 100%; }
+            .motor-section h3 { font-size: 0.9em; }
         }
     </style>
 </head>
