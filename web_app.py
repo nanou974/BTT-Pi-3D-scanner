@@ -337,10 +337,10 @@ HTML_TEMPLATE = """
             <div class="card" style="grid-column: 1 / -1;">
                 <h2>OpenScan Cloud (Gratuit)</h2>
                 <div class="form-group">
-                    <label for="cloud-scan-select">Scan à traiter</label>
-                    <select id="cloud-scan-select" class="form-control" style="width:100%; padding:10px; border:1px solid #0f3460; border-radius:5px; background:#1a1a2e; color:#eee;">
-                        <option value="">Chargement...</option>
-                    </select>
+                    <label>Scans disponibles</label>
+                    <div id="cloud-scan-list" style="max-height:200px; overflow-y:auto; border:1px solid #0f3460; border-radius:5px; background:#1a1a2e;">
+                        <div style="padding:10px; color:#888;">Chargement...</div>
+                    </div>
                 </div>
                 <div class="control-buttons" style="justify-content: center;">
                     <button class="btn btn-primary" onclick="uploadToCloud()">Uploader vers OpenScan Cloud</button>
@@ -475,29 +475,58 @@ HTML_TEMPLATE = """
         }
 
         // === OpenScan Cloud ===
+        let selectedScan = null;
+
         function refreshScans() {
             fetch('/api/files')
                 .then(r => r.json())
                 .then(data => {
-                    const select = document.getElementById('cloud-scan-select');
-                    select.innerHTML = '';
+                    const list = document.getElementById('cloud-scan-list');
+                    list.innerHTML = '';
                     if (data.scans.length === 0) {
-                        select.innerHTML = '<option value="">Aucun scan disponible</option>';
+                        list.innerHTML = '<div style="padding:10px; color:#888;">Aucun scan disponible</div>';
                     } else {
                         data.scans.forEach(scan => {
-                            const opt = document.createElement('option');
-                            opt.value = scan.name;
-                            opt.textContent = scan.name + ' (' + scan.photos + ' photos)';
-                            select.appendChild(opt);
+                            const item = document.createElement('div');
+                            item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid #0f3460; cursor:pointer;';
+                            item.innerHTML = `
+                                <span style="flex:1;">${scan.name} (${scan.photos} photos)</span>
+                                <button class="btn btn-danger" style="padding:4px 8px; font-size:12px; margin-left:10px;" onclick="deleteScan('${scan.name}', event)">✕</button>
+                            `;
+                            item.onclick = (e) => {
+                                if (e.target.tagName === 'BUTTON') return;
+                                selectedScan = scan.name;
+                                list.querySelectorAll('div').forEach(d => d.style.background = '');
+                                item.style.background = '#0f3460';
+                                addLog('Scan sélectionné: ' + scan.name);
+                            };
+                            list.appendChild(item);
                         });
                     }
                 })
                 .catch(err => addLog('Erreur chargement scans: ' + err));
         }
 
+        function deleteScan(name, event) {
+            event.stopPropagation();
+            if (!confirm('Supprimer le scan "' + name + '" ?')) return;
+
+            fetch('/api/files/' + encodeURIComponent(name), { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        addLog('Scan supprimé: ' + name);
+                        if (selectedScan === name) selectedScan = null;
+                        refreshScans();
+                    } else {
+                        addLog('Erreur: ' + data.error);
+                    }
+                })
+                .catch(err => addLog('Erreur suppression: ' + err));
+        }
+
         function uploadToCloud() {
-            const scanName = document.getElementById('cloud-scan-select').value;
-            if (!scanName) {
+            if (!selectedScan) {
                 addLog('Sélectionne un scan à uploader');
                 return;
             }
@@ -508,12 +537,12 @@ HTML_TEMPLATE = """
             statusDiv.style.border = '1px solid #f39c12';
             statusDiv.innerHTML = 'Upload en cours...';
 
-            addLog('Upload vers OpenScan Cloud: ' + scanName);
+            addLog('Upload vers OpenScan Cloud: ' + selectedScan);
 
             fetch('/api/cloud/upload', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({scan: scanName})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({scan: selectedScan})
             })
             .then(r => r.json())
             .then(result => {
@@ -522,7 +551,7 @@ HTML_TEMPLATE = """
                     statusDiv.style.border = '1px solid #27ae60';
                     statusDiv.innerHTML = 'Traitement lancé ! ' + result.photos + ' photos uploadées. ' +
                         'Tu recevras un email avec le lien de téléchargement.';
-                    addLog('OpenScan Cloud: traitement lancé pour ' + scanName);
+                    addLog('OpenScan Cloud: traitement lancé pour ' + selectedScan);
                 } else {
                     statusDiv.style.background = '#3a1a1a';
                     statusDiv.style.border = '1px solid #e74c3c';
@@ -722,6 +751,23 @@ def api_files():
             scans.append({"name": item, "photos": photos})
 
     return jsonify({"scans": scans})
+
+
+@app.route('/api/files/<path:filename>', methods=['DELETE'])
+def api_delete_file(filename):
+    """API: Supprimer un scan"""
+    import shutil
+    captures_dir = scanner.camera.output_dir if scanner else "captures"
+    scan_dir = os.path.join(captures_dir, filename)
+
+    if not os.path.exists(scan_dir):
+        return jsonify({"error": "Scan non trouvé"}), 404
+
+    try:
+        shutil.rmtree(scan_dir)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/files/<path:filename>')
