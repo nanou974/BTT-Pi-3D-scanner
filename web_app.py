@@ -6,9 +6,11 @@ Utilise Flask pour créer une interface de contrôle à distance
 import os
 import json
 import threading
+import cv2
 from datetime import datetime
-from flask import Flask, render_template_string, jsonify, request, send_from_directory
+from flask import Flask, render_template_string, jsonify, request, send_from_directory, Response
 from scanner import Scanner3D
+from camera import WebcamCapture
 from config import WEB_INTERFACE
 
 
@@ -17,6 +19,9 @@ app = Flask(__name__)
 # Instance globale du scanner
 scanner = None
 scan_thread = None
+
+# Instance caméra dédiée au flux vidéo
+video_camera = None
 
 
 # === Template HTML ===
@@ -550,22 +555,27 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     """Flux vidéo de la webcam"""
-    from flask import Response
-    import cv2
+    global video_camera
 
-    camera = scanner.camera if scanner else None
-    if not camera or not camera.is_opened:
-        camera = WebcamCapture()
-        camera.open()
+    # Utiliser une caméra dédiée pour le flux vidéo
+    if video_camera is None or not video_camera.is_opened:
+        video_camera = WebcamCapture()
+        if not video_camera.open():
+            def error_frame():
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n'
+                       b'\xff\xd8\xff\xe0\x00\x10JFIF\x00'  # Header JPEG minimal
+                       b'\xff\xd9')
+            return Response(error_frame(),
+                            mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def generate():
         while True:
-            frame = camera.capture_frame()
+            frame = video_camera.capture_frame()
             if frame is None:
                 break
 
-            # Encoder en JPEG
-            _, buffer = cv2.imencode('.jpg', frame)
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
             frame_bytes = buffer.tobytes()
 
             yield (b'--frame\r\n'
