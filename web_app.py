@@ -311,6 +311,22 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
+            <!-- OpenScan Cloud -->
+            <div class="card">
+                <h2>OpenScan Cloud (Gratuit)</h2>
+                <div class="form-group">
+                    <label for="cloud-scan-select">Scan à traiter</label>
+                    <select id="cloud-scan-select" class="form-control" style="width:100%; padding:10px; border:1px solid #0f3460; border-radius:5px; background:#1a1a2e; color:#eee;">
+                        <option value="">Chargement...</option>
+                    </select>
+                </div>
+                <div class="control-buttons" style="justify-content: center;">
+                    <button class="btn btn-primary" onclick="uploadToCloud()">Uploader vers OpenScan Cloud</button>
+                    <button class="btn btn-secondary" onclick="refreshScans()">Rafraîchir</button>
+                </div>
+                <div id="cloud-status" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
+            </div>
+
             <!-- Logs -->
             <div class="card" style="grid-column: 1 / -1;">
                 <h2>Journal</h2>
@@ -433,6 +449,73 @@ HTML_TEMPLATE = """
         function refreshPreview() {
             document.getElementById('preview').src = '/video_feed?' + Date.now();
         }
+
+        // === OpenScan Cloud ===
+        function refreshScans() {
+            fetch('/api/files')
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('cloud-scan-select');
+                    select.innerHTML = '';
+                    if (data.scans.length === 0) {
+                        select.innerHTML = '<option value="">Aucun scan disponible</option>';
+                    } else {
+                        data.scans.forEach(scan => {
+                            const opt = document.createElement('option');
+                            opt.value = scan.name;
+                            opt.textContent = scan.name + ' (' + scan.photos + ' photos)';
+                            select.appendChild(opt);
+                        });
+                    }
+                })
+                .catch(err => addLog('Erreur chargement scans: ' + err));
+        }
+
+        function uploadToCloud() {
+            const scanName = document.getElementById('cloud-scan-select').value;
+            if (!scanName) {
+                addLog('Sélectionne un scan à uploader');
+                return;
+            }
+
+            const statusDiv = document.getElementById('cloud-status');
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#3a2a1a';
+            statusDiv.style.border = '1px solid #f39c12';
+            statusDiv.innerHTML = 'Upload en cours...';
+
+            addLog('Upload vers OpenScan Cloud: ' + scanName);
+
+            fetch('/api/cloud/upload', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({scan: scanName})
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.status === 'processing') {
+                    statusDiv.style.background = '#1a3a2e';
+                    statusDiv.style.border = '1px solid #27ae60';
+                    statusDiv.innerHTML = 'Traitement lancé ! ' + result.photos + ' photos uploadées. ' +
+                        'Tu recevras un email avec le lien de téléchargement.';
+                    addLog('OpenScan Cloud: traitement lancé pour ' + scanName);
+                } else {
+                    statusDiv.style.background = '#3a1a1a';
+                    statusDiv.style.border = '1px solid #e74c3c';
+                    statusDiv.innerHTML = 'Erreur: ' + (result.message || 'Inconnue');
+                    addLog('Erreur OpenScan Cloud: ' + (result.message || 'Inconnue'));
+                }
+            })
+            .catch(err => {
+                statusDiv.style.background = '#3a1a1a';
+                statusDiv.style.border = '1px solid #e74c3c';
+                statusDiv.innerHTML = 'Erreur réseau';
+                addLog('Erreur upload: ' + err);
+            });
+        }
+
+        // Charger la liste des scans au démarrage
+        refreshScans();
     </script>
 </body>
 </html>
@@ -617,6 +700,32 @@ def api_file(filename):
     """API: Télécharger un fichier"""
     captures_dir = scanner.camera.output_dir if scanner else "captures"
     return send_from_directory(captures_dir, filename)
+
+
+@app.route('/api/cloud/upload', methods=['POST'])
+def api_cloud_upload():
+    """API: Upload vers OpenScan Cloud"""
+    data = request.get_json() or {}
+    scan_name = data.get("scan")
+
+    if not scan_name:
+        return jsonify({"error": "Nom de scan manquant"}), 400
+
+    captures_dir = scanner.camera.output_dir if scanner else "captures"
+    scan_dir = os.path.join(captures_dir, scan_name)
+
+    if not os.path.isdir(scan_dir):
+        return jsonify({"error": f"Scan '{scan_name}' introuvable"}), 404
+
+    try:
+        from openscan_cloud import OpenScanCloud
+        cloud = OpenScanCloud()
+
+        result = cloud.process_scan(scan_dir, project_name=scan_name)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 def create_app():

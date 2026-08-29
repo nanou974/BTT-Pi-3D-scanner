@@ -40,3 +40,11 @@ WEB_INTERFACE = {
     "host": "0.0.0.0",
     "port": 5000,
 }
+
+# === OpenScan Cloud (gratuit) ===
+# Demander un token: envoyer un email à cloud@openscan.eu
+OPENSCAN_CLOUD = {
+    "token": "",                          # Ton token OpenScan Cloud
+    "username": "openscan",               # Utilisateur API (ne pas changer)
+    "password": "free",                   # Mot de passe API (ne pas changer)
+}
