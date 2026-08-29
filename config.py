@@ -31,7 +31,8 @@ SCAN_SETTINGS = {
 # === Webcam ===
 WEBCAM = {
     "device_id": 0,               # ID de la webcam (0 = première webcam détectée)
-    "resolution": (1920, 1080),   # Résolution de capture
+    "resolution": (640, 480),     # Résolution pour l'aperçu (rapide)
+    "capture_resolution": (1920, 1080),  # Résolution pour la capture (qualité)
     "output_dir": "captures",     # Dossier de sortie des images
 }
 

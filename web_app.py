@@ -288,7 +288,7 @@ HTML_TEMPLATE = """
                     <input type="number" id="arm-positions" value="5" min="1" max="20">
                 </div>
                 <div class="control-buttons">
-                    <button class="btn btn-primary" onclick="startScan()">Démarrer le scan</button>
+                    <button class="btn btn-primary" id="start-btn" onclick="startScan()">Démarrer le scan</button>
                     <button class="btn btn-danger" onclick="stopScan()" id="stop-btn" disabled>Arrêter</button>
                 </div>
             </div>
@@ -365,11 +365,13 @@ HTML_TEMPLATE = """
             fetch('/api/status')
                 .then(r => r.json())
                 .then(data => {
+                    const scanning = data.is_scanning;
                     document.getElementById('status-text').textContent =
-                        data.is_scanning ? 'Scan en cours...' : 'En attente';
+                        scanning ? 'Scan en cours...' : 'En attente';
                     document.getElementById('status').className =
-                        'status ' + (data.is_scanning ? 'status-scanning' : 'status-idle');
-                    document.getElementById('stop-btn').disabled = !data.is_scanning;
+                        'status ' + (scanning ? 'status-scanning' : 'status-idle');
+                    document.getElementById('stop-btn').disabled = !scanning;
+                    document.getElementById('start-btn').disabled = scanning;
 
                     if (data.current_scan) {
                         const photos = data.current_scan.photos_captured;

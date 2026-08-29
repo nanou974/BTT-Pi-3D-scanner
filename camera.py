@@ -19,11 +19,12 @@ class WebcamCapture:
 
         Args:
             device_id: ID de la webcam (défaut: config)
-            resolution: Tuple (largeur, hauteur) (défaut: config)
+            resolution: Tuple (largeur, hauteur) pour l'aperçu (défaut: config)
             output_dir: Dossier de sortie (défaut: config)
         """
         self.device_id = device_id or WEBCAM["device_id"]
         self.resolution = resolution or WEBCAM["resolution"]
+        self.capture_resolution = WEBCAM.get("capture_resolution", self.resolution)
         self.output_dir = output_dir or WEBCAM["output_dir"]
         self.cap = None
         self.is_opened = False
@@ -31,7 +32,7 @@ class WebcamCapture:
         # Créer le dossier de sortie
         os.makedirs(self.output_dir, exist_ok=True)
 
-        print(f"[Caméra] Initialisation - Device: {self.device_id}, Résolution: {self.resolution}")
+        print(f"[Caméra] Initialisation - Device: {self.device_id}, Aperçu: {self.resolution}, Capture: {self.capture_resolution}")
 
     def open(self):
         """Ouvre la connexion à la webcam"""
@@ -108,11 +109,26 @@ class WebcamCapture:
     def capture_and_save(self, subdir=None, prefix="scan"):
         """
         Capture et sauvegarde une image en une seule opération
+        Utilise la résolution de capture pour une meilleure qualité
 
         Returns:
             filepath: Chemin de l'image sauvegardée
         """
+        if not self.is_opened:
+            if not self.open():
+                return None
+
+        # Passer en résolution de capture
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.capture_resolution[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.capture_resolution[1])
+        time.sleep(0.3)  # Laisser le temps à la webcam d'ajuster
+
         frame = self.capture_frame()
+
+        # Repasser en résolution d'aperçu
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+
         if frame is not None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             filename = f"{prefix}_{timestamp}.jpg"
