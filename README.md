@@ -10,7 +10,8 @@ Inspiré par le projet [OpenScan](https://openscan.eu/) - Scanner 3D open source
 - **Bras caméra motorisé** : Déplacement vertical pour captures sous différents angles
 - **Capture automatisée** : Séquence de scan complète avec peu d'intervention
 - **Interface web** : Contrôle à distance depuis n'importe quel navigateur
-- **Webcam USB** : Compatible avec la plupart des webcams USB (Logitech C270/C920, etc.)
+- **Webcam USB** : Compatible avec la plupart des webcams USB
+- **Éclairage continu** : Trust Spotlight Pro modifiée (LED toujours allumées)
 - **Scan par couches** : Plusieurs positions verticales du bras pour une meilleure couverture 3D
 
 ## Matériel nécessaire
@@ -21,7 +22,8 @@ Inspiré par le projet [OpenScan](https://openscan.eu/) - Scanner 3D open source
 | BTT Pi v1.2 | 1 | Contrôleur principal (Allwinner H616, 1GB RAM) |
 | A4988 | 2 | Drivers pour moteurs pas à pas |
 | NEMA17 | 2 | Moteurs pas à pas (>13Ncm pour plateau, >40Ncm recommandé) |
-| Webcam USB | 1 | Capture d'images (Logitech C270/C920 ou similaire) |
+| Logitech C300 | 1 | Webcam pour la capture d'images |
+| Trust Spotlight Pro | 1 | Éclairage continu (modifiée: potentiomètre LED retiré) |
 | Alimentation 12V-24V | 1 | Pour les moteurs (ou alimentation USB-C 5V/3A + alim externe moteurs) |
 | Micro SD Card | 1 | >16GB, classe 10 |
 
