@@ -168,6 +168,26 @@ python3 scanner.py
 python3 web_app.py
 ```
 
+### 6. Démarrage automatique au boot
+
+Le serveur démarre automatiquement à l'allumage du BTT Pi :
+
+```bash
+# Installer le service (une seule fois)
+sudo cp /opt/BTT-Pi-3D-scanner/scanner3d.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable scanner3d
+
+# Démarrer maintenant
+sudo systemctl start scanner3d
+
+# Vérifier le statut
+sudo systemctl status scanner3d
+
+# Voir les logs
+sudo journalctl -u scanner3d -f
+```
+
 ### 6. Accéder à l'interface web
 
 Depuis un navigateur sur le même réseau :

@@ -1,0 +1,15 @@
+[Unit]
+Description=Scanner 3D - Serveur Web
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/BTT-Pi-3D-scanner
+ExecStart=/opt/BTT-Pi-3D-scanner/venv/bin/python3 /opt/BTT-Pi-3D-scanner/web_app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
